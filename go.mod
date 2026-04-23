@@ -23,7 +23,7 @@ require (
 	github.com/metacubex/cpu v0.1.0
 	github.com/metacubex/fswatch v0.1.1
 	github.com/metacubex/gopacket v1.1.20-0.20230608035415-7e2f98a3e759
-	github.com/metacubex/http v0.1.0
+	github.com/metacubex/http v0.1.2
 	github.com/metacubex/kcp-go v0.0.0-20260105040817-550693377604
 	github.com/metacubex/mlkem v0.1.0
 	github.com/metacubex/quic-go v0.59.1-0.20260112033758-aa29579f2001
@@ -47,7 +47,7 @@ require (
 	github.com/mroth/weightedrand/v2 v2.1.0
 	github.com/openacid/low v0.1.21
 	github.com/oschwald/maxminddb-golang v1.12.0 // lastest version compatible with golang1.20
-	github.com/sagernet/netlink v0.0.0-20240612041022-b9a21c07ac6a
+	github.com/sagernet/netlink v0.0.0-20240612041022-b9a21c07ac6a // indirect
 	github.com/samber/lo v1.52.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.11.1

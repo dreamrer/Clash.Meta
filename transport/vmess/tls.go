@@ -24,6 +24,19 @@ type TLSConfig struct {
 	Reality           *tlsC.RealityConfig
 }
 
+func (cfg *TLSConfig) ToStdConfig() (*tls.Config, error) {
+	return ca.GetTLSConfig(ca.Option{
+		TLSConfig: &tls.Config{
+			ServerName:         cfg.Host,
+			InsecureSkipVerify: cfg.SkipCertVerify,
+			NextProtos:         cfg.NextProtos,
+		},
+		Fingerprint: cfg.FingerPrint,
+		Certificate: cfg.Certificate,
+		PrivateKey:  cfg.PrivateKey,
+	})
+}
+
 type ECHConfig struct {
 	Enable bool
 }
