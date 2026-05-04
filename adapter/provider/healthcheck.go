@@ -193,7 +193,9 @@ func (hc *HealthCheck) execute(b *errgroup.Group, url, uid string, option *extra
 				if urlTestErr != nil {
 					reason = urlTestErr.Error()
 				}
-				log.Warnln("Health Check FAILED, proxy: %s, url: %s, type: %s, reason: %s, uid: {%s}", p.Name(), url, p.Type().String(), reason, uid)
+				// 用 error 级别（不是 warning），确保用户默认 log-level=error
+				// 配置下也能直接在日志面板看到失败节点和原因，不用切到 debug。
+				log.Errorln("Health Check FAILED, proxy: %s, url: %s, type: %s, reason: %s, uid: {%s}", p.Name(), url, p.Type().String(), reason, uid)
 			}
 			return nil
 		})
