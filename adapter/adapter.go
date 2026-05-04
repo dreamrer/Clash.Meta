@@ -211,8 +211,14 @@ func (p *Proxy) URLTest(ctx context.Context, url string, expectedStatus utils.In
 	}
 
 	start := time.Now()
+	dialStart := time.Now()
 	instance, err := p.DialContext(ctx, &addr)
+	dialDuration := time.Since(dialStart)
 	if err != nil {
+		// 把分阶段耗时编进错误信息，让 healthcheck 日志能看出是哪一步挂的：
+		// 比如 "dial failed after 4.998s: context deadline exceeded" → QUIC 握手层超时；
+		// 比如 "dial failed after 12ms: connection refused" → 立刻被服务端拒。
+		err = fmt.Errorf("dial failed after %v: %w", dialDuration.Round(time.Millisecond), err)
 		return
 	}
 	defer func() {
@@ -221,12 +227,14 @@ func (p *Proxy) URLTest(ctx context.Context, url string, expectedStatus utils.In
 
 	req, err := http.NewRequest(http.MethodHead, url, nil)
 	if err != nil {
+		err = fmt.Errorf("build request: %w", err)
 		return
 	}
 	req = req.WithContext(ctx)
 
 	tlsConfig, err := ca.GetTLSConfig(ca.Option{})
 	if err != nil {
+		err = fmt.Errorf("tls config: %w", err)
 		return
 	}
 
@@ -252,9 +260,17 @@ func (p *Proxy) URLTest(ctx context.Context, url string, expectedStatus utils.In
 
 	defer client.CloseIdleConnections()
 
+	httpStart := time.Now()
 	resp, err := client.Do(req)
+	httpDuration := time.Since(httpStart)
 
 	if err != nil {
+		// 跑到这里说明 dial 已经成功了（隧道建立 ok），是 HTTP 请求层挂了。
+		// 多半是流被服务端关掉、TLS 握手挂、或上游目标 (gstatic/generate_204) 不通。
+		err = fmt.Errorf("http request failed after dial:%v + req:%v: %w",
+			dialDuration.Round(time.Millisecond),
+			httpDuration.Round(time.Millisecond),
+			err)
 		return
 	}
 
