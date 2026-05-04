@@ -181,8 +181,20 @@ func (hc *HealthCheck) execute(b *errgroup.Group, url, uid string, option *extra
 			ctx, cancel := context.WithTimeout(hc.ctx, hc.timeout)
 			defer cancel()
 			log.Debugln("Health Checking, proxy: %s, url: %s, id: {%s}", p.Name(), url, uid)
-			_, _ = p.URLTest(ctx, url, expectedStatus)
-			log.Debugln("Health Checked, proxy: %s, url: %s, alive: %t, delay: %d ms uid: {%s}", p.Name(), url, p.AliveForTestUrl(url), p.LastDelayForTestUrl(url), uid)
+			_, urlTestErr := p.URLTest(ctx, url, expectedStatus)
+			alive := p.AliveForTestUrl(url)
+			delay := p.LastDelayForTestUrl(url)
+			if alive {
+				log.Debugln("Health Checked, proxy: %s, url: %s, alive: %t, delay: %d ms uid: {%s}", p.Name(), url, alive, delay, uid)
+			} else {
+				// 节点不可用时把底层错误打到 warning 级别，方便用户从日志面板里直接看到
+				// DNS / 握手 / UDP 等具体失败原因，不用切换到 debug 级别。
+				reason := "context deadline exceeded"
+				if urlTestErr != nil {
+					reason = urlTestErr.Error()
+				}
+				log.Warnln("Health Check FAILED, proxy: %s, url: %s, type: %s, reason: %s, uid: {%s}", p.Name(), url, p.Type().String(), reason, uid)
+			}
 			return nil
 		})
 	}
