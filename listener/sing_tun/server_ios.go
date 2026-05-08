@@ -98,8 +98,30 @@ func (t *iosTun) Close() error {
 // gvisor link endpoint
 var _ tun.GVisorTun = (*iosTun)(nil)
 
-func (t *iosTun) NewEndpoint() (stack.LinkEndpoint, error) {
-	return &iosEndpoint{tun: t}, nil
+func (t *iosTun) NewEndpoint() (stack.LinkEndpoint, stack.NICOptions, error) {
+	return &iosEndpoint{tun: t}, stack.NICOptions{}, nil
+}
+
+// WritePacket 是 sing-tun v0.4.11 的 GVisorTun 接口要求：mihomo 网络栈直接
+// 写包时（不经 LinkEndpoint.WritePackets 路径）调这里。把 PacketBuffer 拼成
+// 一段连续 IP 字节，然后走和 Write() 同一个 IosPacketWriter 回调。
+func (t *iosTun) WritePacket(pkt *stack.PacketBuffer) (int, error) {
+	views := pkt.AsSlices()
+	var total int
+	for _, v := range views {
+		total += len(v)
+	}
+	if total == 0 {
+		return 0, nil
+	}
+	out := make([]byte, 0, total)
+	for _, v := range views {
+		out = append(out, v...)
+	}
+	if w, _ := t.writer.Load().(IosPacketWriter); w != nil {
+		w(out)
+	}
+	return total, nil
 }
 
 type iosEndpoint struct {
